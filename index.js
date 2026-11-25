@@ -1,7 +1,8 @@
 import fs from "fs";
+import path from "path";
 class MJM {
     file;
-    #data;
+    _data;
     initial_value;
     /**
      * JSONファイルを読み込み、JSオブジェクトに変換します。
@@ -9,28 +10,27 @@ class MJM {
      * @param option ファイルの読み込みオプション
      */
     constructor(filepath, option) {
-        let opt = option ?? { initial_value: {}, encoding: 'utf-8' };
-        const filename = filepath.toString().match(/([^(\\|\/)]+?)?$/);
-        this.file = { path: filepath, name: `${filename}.json`, encoding: opt.encoding ?? 'utf-8' };
-        this.initial_value = opt.initial_value ?? {};
-        if (!fs.existsSync(filepath))
+        this.file = { path: filepath, name: path.basename(filepath), encoding: option?.encoding ?? 'utf-8' };
+        this.initial_value = structuredClone(option?.initial_value ?? {});
+        if (!fs.existsSync(filepath)) {
+            fs.mkdirSync(path.dirname(filepath), { recursive: true });
             fs.writeFileSync(filepath, JSON.stringify(this.initial_value, null, '\t'), { encoding: this.file.encoding });
+        }
         const data_str = fs.readFileSync(filepath, { encoding: this.file.encoding });
-        this.#data = JSON.parse(data_str);
+        this._data = JSON.parse(data_str);
     }
     /**
      * 読み込んだJSONをJSオブジェクトに変換したもの
      * @returns JSオブジェクト
      */
     get data() {
-        return this.#data;
+        return this._data;
     }
     /**
      * @param data 上書きする値
-     * @returns JSオブジェクト
      */
     set data(data) {
-        this.#data = data;
+        this._data = data;
     }
     /**
      * メモリを初期値にする
@@ -38,8 +38,8 @@ class MJM {
      * @returns 初期化前のデータ
      */
     init(andSave) {
-        let old = this.#data;
-        this.#data = this.initial_value;
+        let old = this._data;
+        this._data = structuredClone(this.initial_value);
         if (andSave)
             this.save();
         return old;
@@ -50,44 +50,29 @@ class MJM {
      */
     reload() {
         const data_str = fs.readFileSync(this.file.path, { encoding: this.file.encoding });
-        this.#data = JSON.parse(data_str);
-        return this.#data;
+        this._data = JSON.parse(data_str);
+        return this._data;
     }
     /**
      * ファイルに書き込む
      */
     save() {
-        const data_str = JSON.stringify(this.#data, null, '\t');
+        const data_str = JSON.stringify(this._data, null, '\t');
         fs.writeFileSync(this.file.path, data_str, { encoding: this.file.encoding });
-        return this.#data;
+        return this._data;
     }
     /**
      * ファイルが同期しているか否か
      * @returns
      */
-    isSynced() {
-        const ram = this.#data;
-        const rom = this.reload();
-        if (ram == rom) {
-            return true;
+    isSynced(at) {
+        const ram = JSON.stringify(this._data);
+        if (at === undefined) {
+            const rom = fs.readFileSync(this.file.path, { encoding: this.file.encoding });
+            return ram === JSON.stringify(JSON.parse(rom));
         }
         else {
-            return false;
+            return ram === JSON.stringify(at);
         }
     }
 }
-const JSON_DATABASE = new MJM('/database/temp.json', {
-    initial_value: {
-        hime: "kawaii",
-        mikoto: "kakkoii"
-    },
-    encoding: 'utf-8'
-});
-JSON_DATABASE.data;
-JSON_DATABASE.file.name;
-JSON_DATABASE.file.path;
-JSON_DATABASE.file.encoding;
-JSON_DATABASE.init(true);
-JSON_DATABASE.isSynced();
-JSON_DATABASE.reload();
-JSON_DATABASE.save();
