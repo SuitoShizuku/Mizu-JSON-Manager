@@ -1,5 +1,5 @@
 {
-  "name": "mizu-json-manager",
+  "name": "@suitoshizuku/mizu-json-manager",
   "version": "1.0.0",
   "type": "module",
   "description": "JSONファイルをデータの保存先として使いやすくするためのパッケージ",
