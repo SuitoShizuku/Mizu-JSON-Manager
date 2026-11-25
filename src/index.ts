@@ -109,5 +109,5 @@ class MJM<T extends object = JsonObject> {
     }
 }
 
-export {MJM}
+export default MJM
 export type {JsonObject}
